@@ -1,89 +1,53 @@
 package main
 
 import (
-	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"os"
+	"time"
 )
 
-type ToDo struct {
-	gorm.Model
+const version = "1.0.0"
 
-	ID   uint
-	Task string `json:"task"`
+type config struct {
+	port int
+	env  string
 }
 
-var db *gorm.DB
-var err error
-
-func Routes() {
-	r := mux.NewRouter()
-
-	//api routes
-	r.HandleFunc("/todo", allToDos).Methods("Get")
-	r.HandleFunc("/todo/{id}", toDoDetails).Methods("GET")
-	r.HandleFunc("/create", createToDo).Methods("POST")
-	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	originsOk := handlers.AllowedOrigins([]string{"*"})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
-	log.Fatal(http.ListenAndServe(":9000", handlers.CORS(originsOk, headersOk, methodsOk)(r)))
+type AppStatus struct {
+	Status      string `json:"status"`
+	Environment string `json:"environment"`
+	Version     string `json:"version"`
 }
 
-func Migrations() {
-	// dialect := os.Getenv("DIALECT")
+type application struct {
+	config config
+	logger *log.Logger
+}
 
-	//database connection string
-	dbURI := "host=localhost user=postgres password=austinforreal dbname=CRUD port=5432 sslmode=disable TimeZone=Africa/Lagos"
-	//opening database
+func main() {
+	var cfg config
+	flag.IntVar(&cfg.port, "port", 4000, "Server port to listen on")
+	flag.StringVar(&cfg.env, "env", "development", "Application environment (development|production)")
+	flag.Parse()
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	app := &application{
+		config: cfg,
+		logger: logger,
+	}
+	srv := &http.Server{
 
-	db, err := gorm.Open("postgres", dbURI)
+		Addr:         fmt.Sprintf(":d%", cfg.port),
+		ReadTimeout:  10 * time.Second,
+		IdleTimeout:  time.Minute,
+		WriteTimeout: 30 * time.Second,
+	}
+	logger.Println("server starting in port", cfg.port)
+	err := srv.ListenAndServe()
 
 	if err != nil {
-		log.Fatal(err)
-
-		panic("Can not connect to database")
-	} else {
-		fmt.Println("Database connected successfully")
-
+		fmt.Println(err)
 	}
-
-	// Migrate the schema
-	db.AutoMigrate(&ToDo{})
-}
-func main() {
-	Routes()
-	Migrations()
-
-}
-
-func allToDos(w http.ResponseWriter, r *http.Request) {
-
-	var todo []ToDo
-	db.Find(&todo)
-
-	json.NewEncoder(w).Encode(todo)
-
-}
-
-func toDoDetails(w http.ResponseWriter, r *http.Request) {
-	var todo []ToDo
-	params := mux.Vars(r)
-
-	db.First(&todo, params["id"])
-	json.NewEncoder(w).Encode(todo)
-}
-
-func createToDo(w http.ResponseWriter, r *http.Request) {
-	var todo []ToDo
-
-	json.NewDecoder(r.Body).Decode(&todo)
-	fmt.Println(r.Body)
-	db.Create(&todo)
-
 }

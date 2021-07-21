@@ -8,8 +8,11 @@ require (
 	github.com/gorilla/mux v1.8.0 // direct
 	github.com/jackc/pgx/v4 v4.12.0 // direct
 	github.com/jinzhu/gorm v1.9.16 // direct
+	github.com/julienschmidt/httprouter v1.3.0 // indirect
+	github.com/lib/pq v1.10.2 // indirect
 	github.com/rs/cors v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // direct
 	gorm.io/driver/postgres v1.1.0 // direct
 	gorm.io/gorm v1.21.12 // direct
+
 )
